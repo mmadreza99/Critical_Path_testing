@@ -5,7 +5,6 @@ tasks = dict()  # contains all the tasks
 branches = list()
 output = dict()
 gates = dict()
-subset = list()
 
 
 def read_task():
@@ -17,30 +16,34 @@ def read_task():
             continue
 
         if re.match('INPUT.*$', line):
-            singleElement = re.findall('\w*\((\d*)\)', line)  # split a line in sub parts
+            singleElement = re.findall(r'\w*\((\d*)\)', line)  # split a line in sub parts
             # print(singleElement)
             tasks['input_' + str(singleElement[0])] = dict()
             tasks['input_' + str(singleElement[0])]['name'] = singleElement[0]
-            tasks['input_' + str(singleElement[0])]['value'] = 0  # random.randint(0, 1)
+            tasks['input_' + str(singleElement[0])]['value'] = random.randint(0, 1)
             tasks['input_' + str(singleElement[0])]['isCritical'] = False
             tasks['input_' + str(singleElement[0])]['branch'] = False
             tasks['input_' + str(singleElement[0])]['subset'] = list()
+            tasks['input_' + str(singleElement[0])]['randomly'] = True
         if re.match('OUTPUT.*$', line):
-            singleElement = re.findall('\w*\((\d*)\)', line)  # split a line in sub parts
+            singleElement = re.findall(r'\w*\((\d*)\)', line)  # split a line in sub parts
+            single_value = re.findall(r'\d*', line)  # split a line in sub parts
             output['output' + str(singleElement[0])] = dict()
             output['output' + str(singleElement[0])]['name'] = singleElement[0]
+            output['output' + str(singleElement[0])]['value'] = single_value[0]
         if '=' in line:
-            inputelement = (line.split(' '))
-            name_gate = inputelement[2].split('(')
+            input_element = (line.split(' '))
+            name_gate = input_element[2].split('(')
             text = line.split('=')
             input_ = re.findall('[0-9]{1,3}', text[1])
             result_ = re.findall('[0-9]{1,3}', text[0])
-            tasks['input_' + str(inputelement[0])] = dict()
-            tasks['input_' + str(inputelement[0])]['name'] = inputelement[0]
-            tasks['input_' + str(inputelement[0])]['value'] = 0
-            tasks['input_' + str(inputelement[0])]['isCritical'] = False
-            tasks['input_' + str(inputelement[0])]['branch'] = False
-            tasks['input_' + str(inputelement[0])]['subset'] = list()
+            tasks['input_' + str(input_element[0])] = dict()
+            tasks['input_' + str(input_element[0])]['name'] = input_element[0]
+            tasks['input_' + str(input_element[0])]['value'] = 0
+            tasks['input_' + str(input_element[0])]['isCritical'] = False
+            tasks['input_' + str(input_element[0])]['branch'] = False
+            tasks['input_' + str(input_element[0])]['subset'] = list()
+            tasks['input_' + str(input_element[0])]['randomly'] = False
             gates['gate_' + str(name_gate[0]) + str(counter)] = dict()
             gates['gate_' + str(name_gate[0]) + str(counter)]['name'] = name_gate[0]
             gates['gate_' + str(name_gate[0]) + str(counter)]['input'] = input_
@@ -48,13 +51,7 @@ def read_task():
             counter += 1
 
 
-def AND(a, b, d='', c='', e='', f='', g='', h='', i=''):
-    if i != '':
-        if a and b and d and c and e and f and g and h and i:
-            return 1
-        else:
-            return 0
-
+def AND(a, b, d='', c='', e=''):
     if e != '':
         if a and b and d and c and e:
             return 1
@@ -128,13 +125,13 @@ def NOT(a):
 
 
 def NOR(a, b):
-    if(a == 0) and (b == 0):
+    if (a == 0) and (b == 0):
         return 1
-    elif(a == 0) and (b == 1):
+    elif (a == 0) and (b == 1):
         return 0
-    elif(a == 1) and (b == 0):
+    elif (a == 1) and (b == 0):
         return 0
-    elif(a == 1) and (b == 1):
+    elif (a == 1) and (b == 1):
         return 0
 
 
@@ -144,99 +141,238 @@ def update_value(value, name_gate):
     tasks[input_a]['value'] = value
 
 
-def subset_check(gate, sub_a, sub_b):
-    # print(gate[0], sub_a, sub_b)
+def subset_check(gate, *args):
+    # print(gate[0], args)
     input_a = 'input_' + str(gate[0])
-    tasks[input_a]['subset'].append(sub_a)
-    tasks[input_a]['subset'].append(sub_b)
+    for arg in args:
+        tasks[input_a]['subset'].append(arg)
 
 
-def critical_path(str_gates, input_1, input_2, task_1, task_2):
+def critical_path(str_gates, list_task):
+    # print('critical :', str_gates, list_task)
 
-    if task_2 in branches:
-        # print('branch :', tasks['input_' + task_2]['name'])
-        tasks['input_' + task_2]['branch'] = True
-        try:
-            # print('subset :', tasks['input_' + task_2]['subset'])
-            for i in tasks['input_' + task_2]['subset']:
-                tasks['input_' + i]['isCritical'] = False
-        except:
-            pass
+    for name_input in list_task:
+        '''
+        false sub branch
+        '''
+        if name_input in branches:
+            # print('branch :', tasks[name_input]['name'])
+            tasks[name_input]['branch'] = True
+            try:
+                # print('subset :', tasks[name_input]['subset'])
+                for i in tasks[name_input]['subset']:
+                    tasks['input_' + i]['isCritical'] = False
+            finally:
+                pass
 
-    if task_1 in branches:
-        tasks['input_' + task_1]['branch'] = True
-        # print('branch :', tasks['input_' + task_1]['name'])
-        try:
-            # print('subset :', tasks['input_' + task_2]['subset'])
-            for i in tasks['input_' + task_1]['subset']:
-                tasks['input_' + i]['isCritical'] = False
-        except:
-            pass
-
-    branches.append(task_1)
-    branches.append(task_2)
+    for i in list_task:
+        branches.append(i)
 
     if str_gates == 'NAND':
-        if input_1 == 1 and input_2 == 1:
-            tasks['input_'+task_1]['isCritical'] = True
-            tasks['input_'+task_2]['isCritical'] = True
-        if input_1 == 1 and input_2 == 0:
-            tasks['input_'+task_2]['isCritical'] = True
-        if input_1 == 0 and input_2 == 1:
-            tasks['input_'+task_1]['isCritical'] = True
+        if len(list_task) == 2:
+            input_1 = tasks[list_task[0]]['value']
+            input_2 = tasks[list_task[1]]['value']
+            if input_1 == 1 and input_2 == 1:
+                tasks[list_task[0]]['isCritical'] = True
+                tasks[list_task[1]]['isCritical'] = True
+            if input_1 == 1 and input_2 == 0:
+                tasks[list_task[1]]['isCritical'] = True
+            if input_1 == 0 and input_2 == 1:
+                tasks[list_task[0]]['isCritical'] = True
 
     if str_gates == 'AND':
-        pass
+        if len(list_task) == 2:
+            input_1 = tasks[list_task[0]]['value']
+            input_2 = tasks[list_task[1]]['value']
+            if input_1 == 1 and input_2 == 1:
+                tasks[list_task[0]]['isCritical'] = True
+                tasks[list_task[1]]['isCritical'] = True
+            if input_1 == 1 and input_2 == 0:
+                tasks[list_task[1]]['isCritical'] = True
+            if input_1 == 0 and input_2 == 1:
+                tasks[list_task[0]]['isCritical'] = True
+
+        if len(list_task) == 4:
+            input_1 = tasks[list_task[0]]['value']
+            input_2 = tasks[list_task[1]]['value']
+            input_3 = tasks[list_task[2]]['value']
+            input_4 = tasks[list_task[3]]['value']
+            if input_1 == 1 and input_2 == 1 and input_3 == 1 and input_4 == 1:
+                tasks[list_task[0]]['isCritical'] = True
+                tasks[list_task[1]]['isCritical'] = True
+                tasks[list_task[2]]['isCritical'] = True
+                tasks[list_task[3]]['isCritical'] = True
+            if input_1 == 0 and input_2 == 1 and input_3 == 1 and input_4 == 1:
+                tasks[list_task[0]]['isCritical'] = True
+            if input_1 == 1 and input_2 == 0 and input_3 == 1 and input_4 == 1:
+                tasks[list_task[1]]['isCritical'] = True
+            if input_1 == 1 and input_2 == 1 and input_3 == 0 and input_4 == 1:
+                tasks[list_task[2]]['isCritical'] = True
+            if input_1 == 1 and input_2 == 1 and input_3 == 1 and input_4 == 0:
+                tasks[list_task[3]]['isCritical'] = True
+
+        if len(list_task) == 5:
+            input_1 = tasks[list_task[0]]['value']
+            input_2 = tasks[list_task[1]]['value']
+            input_3 = tasks[list_task[2]]['value']
+            input_4 = tasks[list_task[3]]['value']
+            input_5 = tasks[list_task[4]]['value']
+            if input_1 == 1 and input_2 == 1 and input_3 == 1 and input_4 == 1 and input_5 == 1:
+                tasks[list_task[0]]['isCritical'] = True
+                tasks[list_task[1]]['isCritical'] = True
+                tasks[list_task[2]]['isCritical'] = True
+                tasks[list_task[3]]['isCritical'] = True
+                tasks[list_task[4]]['isCritical'] = True
+            if input_1 == 0 and input_2 == 1 and input_3 == 1 and input_4 == 1 and input_5 == 1:
+                tasks[list_task[0]]['isCritical'] = True
+            if input_1 == 1 and input_2 == 0 and input_3 == 1 and input_4 == 1 and input_5 == 1:
+                tasks[list_task[1]]['isCritical'] = True
+            if input_1 == 1 and input_2 == 1 and input_3 == 0 and input_4 == 1 and input_5 == 1:
+                tasks[list_task[2]]['isCritical'] = True
+            if input_1 == 1 and input_2 == 1 and input_3 == 1 and input_4 == 0 and input_5 == 1:
+                tasks[list_task[3]]['isCritical'] = True
+            if input_1 == 1 and input_2 == 1 and input_3 == 1 and input_4 == 1 and input_5 == 0:
+                tasks[list_task[4]]['isCritical'] = True
 
     if str_gates == 'XOR':
-        pass
+        if len(list_task) == 2:
+            input_1 = tasks[list_task[0]]['value']
+            input_2 = tasks[list_task[1]]['value']
+            if input_1 == 0 and input_2 == 0:
+                tasks[list_task[0]]['isCritical'] = True
+                tasks[list_task[1]]['isCritical'] = True
+            if input_1 == 1 and input_2 == 0:
+                tasks[list_task[0]]['isCritical'] = True
+            if input_1 == 0 and input_2 == 1:
+                tasks[list_task[1]]['isCritical'] = True
 
     if str_gates == 'OR':
-        pass
+        if len(list_task) == 2:
+            input_1 = tasks[list_task[0]]['value']
+            input_2 = tasks[list_task[1]]['value']
+            if input_1 == 0 and input_2 == 0:
+                tasks[list_task[0]]['isCritical'] = True
+                tasks[list_task[1]]['isCritical'] = True
+            if input_1 == 1 and input_2 == 0:
+                tasks[list_task[0]]['isCritical'] = True
+            if input_1 == 0 and input_2 == 1:
+                tasks[list_task[1]]['isCritical'] = True
 
     if str_gates == 'NOT':
-        pass
+        if len(list_task) == 1:
+            input_1 = tasks[list_task[0]]['value']
+            tasks[list_task[0]]['isCritical'] = True
 
-    # print('critical ', str_gates, input_1, input_2, task_1, task_2, branches, subset)
+
+def print_value():
+    # =============================================================================
+    # PRINTING
+    # =============================================================================
+    for task in tasks:
+        if str(tasks[task]['randomly']) == 'True':
+            print(f"number of input {tasks[task]['name']}, value is {tasks[task]['value']}")
+
+    for task in tasks:
+        if str(tasks[task]['isCritical']) == 'True':
+            print(f"stuck at {NOT(tasks[task]['value'])} in {tasks[task]['name']}")
+
+    for out in output:
+        print(f"stuck at {NOT(output[out]['value'])} in {output[out]['name']}")
 
 
 def c17():
     read_task()
+
     for gate in gates:
         if str(gates[gate]['name']) == 'NAND':
-            input_a = 'input_' + str(gates[gate]['input'][0])
-            input_b = 'input_' + str(gates[gate]['input'][1])
-            value = NAND(tasks[input_a]['value'], tasks[input_b]['value'])
-            # print(gate, value)
-            subset_check(gates[gate]['result'], tasks[input_a]['name'], tasks[input_b]['name'])
-            update_value(value, gates[gate]['result'])
-            critical_path(
-                gates[gate]['name'], tasks[input_a]['value'], tasks[input_b]['value'],
-                tasks[input_a]['name'], tasks[input_b]['name']
-            )
+            list_input = list()
+            for i in range(len(gates[gate]['input'])):
+                list_input.append('input_' + str(gates[gate]['input'][i]))
+            # print('NAND:', list_input)
+
+            if len(list_input) == 2:
+                value = NAND(tasks[list_input[0]]['value'], tasks[list_input[1]]['value'])
+                # print(gate, value)
+                subset_check(gates[gate]['result'], tasks[list_input[0]]['name'], tasks[list_input[1]]['name'])
+                update_value(value, gates[gate]['result'])
+                critical_path(gates[gate]['name'], list_input)
+
         if str(gates[gate]['name']) == 'AND':
-            input_a = 'input_' + str(gates[gate]['input'][0])
-            input_b = 'input_' + str(gates[gate]['input'][1])
-            value = AND(tasks[input_a]['value'], tasks[input_b]['value'])
-            # print(gate, value)
-            subset_check(gates[gate]['result'], tasks[input_a]['name'], tasks[input_b]['name'])
-            update_value(value, gates[gate]['result'])
-            critical_path(
-                gates[gate]['name'], tasks[input_a]['value'], tasks[input_b]['value'],
-                tasks[input_a]['name'], tasks[input_b]['name']
-            )
+            list_input = list()
+            for i in range(len(gates[gate]['input'])):
+                list_input.append('input_' + str(gates[gate]['input'][i]))
+
+            # print('AND: ', list_input)
+
+            if len(list_input) == 2:
+                value = AND(tasks[list_input[0]]['value'], tasks[list_input[1]]['value'])
+                # print(gate, value)
+                subset_check(gates[gate]['result'], tasks[list_input[0]]['name'], tasks[list_input[1]]['name'])
+                update_value(value, gates[gate]['result'])
+                critical_path(gates[gate]['name'], list_input)
+
+            if len(list_input) == 4:
+                value = AND(tasks[list_input[0]]['value'], tasks[list_input[1]]['value'],
+                            tasks[list_input[2]]['value'], tasks[list_input[3]]['value'])
+                # print(gate, value)
+                subset_check(gates[gate]['result'], tasks[list_input[0]]['name'], tasks[list_input[1]]['name'],
+                             tasks[list_input[2]]['name'], tasks[list_input[3]]['name'])
+                update_value(value, gates[gate]['result'])
+                critical_path(gates[gate]['name'], list_input)
+
+            if len(list_input) == 5:
+                value = AND(tasks[list_input[0]]['value'], tasks[list_input[1]]['value'],
+                            tasks[list_input[2]]['value'], tasks[list_input[3]]['value'],
+                            tasks[list_input[4]]['value'])
+                # print(gate, value)
+                subset_check(gates[gate]['result'], tasks[list_input[0]]['name'], tasks[list_input[1]]['name'],
+                             tasks[list_input[2]]['name'], tasks[list_input[3]]['name'], tasks[list_input[4]]['name'])
+                update_value(value, gates[gate]['result'])
+                critical_path(gates[gate]['name'], list_input)
+
+        if str(gates[gate]['name']) == 'XOR':
+            list_input = list()
+            for i in range(len(gates[gate]['input'])):
+                list_input.append('input_' + str(gates[gate]['input'][i]))
+
+            # print('XOR:', list_input)
+
+            if len(list_input) == 2:
+                value = XOR(tasks[list_input[0]]['value'], tasks[list_input[1]]['value'])
+                # print(gate, value)
+                subset_check(gates[gate]['result'], tasks[list_input[0]]['name'], tasks[list_input[1]]['name'])
+                update_value(value, gates[gate]['result'])
+                critical_path(gates[gate]['name'], list_input)
+
+        if str(gates[gate]['name']) == 'OR':
+            list_input = list()
+            for i in range(len(gates[gate]['input'])):
+                list_input.append('input_' + str(gates[gate]['input'][i]))
+
+            # print('OR:', list_input)
+
+            if len(list_input) == 4:
+                value = OR(tasks[list_input[0]]['value'], tasks[list_input[1]]['value'],
+                            tasks[list_input[2]]['value'], tasks[list_input[3]]['value'])
+                # print(gate, value)
+                subset_check(gates[gate]['result'], tasks[list_input[0]]['name'], tasks[list_input[1]]['name'],
+                             tasks[list_input[2]]['name'], tasks[list_input[3]]['name'])
+                update_value(value, gates[gate]['result'])
+                critical_path(gates[gate]['name'], list_input)
+
+        if str(gates[gate]['name']) == 'NOT':
+            list_input = list()
+            for i in range(len(gates[gate]['input'])):
+                list_input.append('input_' + str(gates[gate]['input'][i]))
+            # print('NOT:', list_input)
+
+            if len(list_input) == 1:
+                value = NOT(tasks[list_input[0]]['value'])
+                # print(gate, value)
+                subset_check(gates[gate]['result'], tasks[list_input[0]]['name'])
+                update_value(value, gates[gate]['result'])
+                critical_path(gates[gate]['name'], list_input)
+    print_value()
 
 
 c17()
-# =============================================================================
-# PRINTING
-# =============================================================================
-for task in tasks:
-    if str(tasks[task]['isCritical']) == 'True':
-        print(f"stuck at {NOT(tasks[task]['value'])} in {tasks[task]['name']}")
-
-for out in output:
-    print(f"stuck at {0} in {output[out]['name']}")
-
-# print(f"stuck at {NOT(tasks['n22']['value'])} in {tasks['n22']['name']}")
-# print(f"stuck at {NOT(tasks['n23']['value'])} in {tasks['n23']['name']}")
