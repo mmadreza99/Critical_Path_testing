@@ -1,0 +1,2 @@
+# Critical_Path_testing
+ We present an alternative to fault simulation, referred to as critical path tracing, that determines the faults detected by a set of tests using a backtracing algorithm starting at the primary outputs of a circuit. Critical path tracing is an approximate method, but the approximations introduced occur seldom and do not affect its usefulness. This method is more efficient than conventional fault simulation.
