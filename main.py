@@ -5,6 +5,7 @@ tasks = dict()  # contains all the tasks
 branches = list()
 output = dict()
 gates = dict()
+subset = list()
 
 
 def read_task():
@@ -16,32 +17,30 @@ def read_task():
             continue
 
         if re.match('INPUT.*$', line):
-            singleElement = re.findall(r'\w*\((\d*)\)', line)  # split a line in sub parts
+            singleElement = re.findall('\w*\((\d*)\)', line)  # split a line in sub parts
             # print(singleElement)
             tasks['input_' + str(singleElement[0])] = dict()
             tasks['input_' + str(singleElement[0])]['name'] = singleElement[0]
-            tasks['input_' + str(singleElement[0])]['value'] = random.randint(0, 1)
+            tasks['input_' + str(singleElement[0])]['value'] = 0  # random.randint(0, 1)
             tasks['input_' + str(singleElement[0])]['isCritical'] = False
             tasks['input_' + str(singleElement[0])]['branch'] = False
             tasks['input_' + str(singleElement[0])]['subset'] = list()
         if re.match('OUTPUT.*$', line):
-            singleElement = re.findall(r'\w*\((\d*)\)', line)  # split a line in sub parts
-            single_value = re.findall(r'\d*', line)  # split a line in sub parts
+            singleElement = re.findall('\w*\((\d*)\)', line)  # split a line in sub parts
             output['output' + str(singleElement[0])] = dict()
             output['output' + str(singleElement[0])]['name'] = singleElement[0]
-            output['output' + str(singleElement[0])]['value'] = single_value[0]
         if '=' in line:
-            input_element = (line.split(' '))
-            name_gate = input_element[2].split('(')
+            inputelement = (line.split(' '))
+            name_gate = inputelement[2].split('(')
             text = line.split('=')
             input_ = re.findall('[0-9]{1,3}', text[1])
             result_ = re.findall('[0-9]{1,3}', text[0])
-            tasks['input_' + str(input_element[0])] = dict()
-            tasks['input_' + str(input_element[0])]['name'] = input_element[0]
-            tasks['input_' + str(input_element[0])]['value'] = 0
-            tasks['input_' + str(input_element[0])]['isCritical'] = False
-            tasks['input_' + str(input_element[0])]['branch'] = False
-            tasks['input_' + str(input_element[0])]['subset'] = list()
+            tasks['input_' + str(inputelement[0])] = dict()
+            tasks['input_' + str(inputelement[0])]['name'] = inputelement[0]
+            tasks['input_' + str(inputelement[0])]['value'] = 0
+            tasks['input_' + str(inputelement[0])]['isCritical'] = False
+            tasks['input_' + str(inputelement[0])]['branch'] = False
+            tasks['input_' + str(inputelement[0])]['subset'] = list()
             gates['gate_' + str(name_gate[0]) + str(counter)] = dict()
             gates['gate_' + str(name_gate[0]) + str(counter)]['name'] = name_gate[0]
             gates['gate_' + str(name_gate[0]) + str(counter)]['input'] = input_
@@ -129,13 +128,13 @@ def NOT(a):
 
 
 def NOR(a, b):
-    if (a == 0) and (b == 0):
+    if(a == 0) and (b == 0):
         return 1
-    elif (a == 0) and (b == 1):
+    elif(a == 0) and (b == 1):
         return 0
-    elif (a == 1) and (b == 0):
+    elif(a == 1) and (b == 0):
         return 0
-    elif (a == 1) and (b == 1):
+    elif(a == 1) and (b == 1):
         return 0
 
 
@@ -153,6 +152,7 @@ def subset_check(gate, sub_a, sub_b):
 
 
 def critical_path(str_gates, input_1, input_2, task_1, task_2):
+
     if task_2 in branches:
         # print('branch :', tasks['input_' + task_2]['name'])
         tasks['input_' + task_2]['branch'] = True
@@ -160,7 +160,7 @@ def critical_path(str_gates, input_1, input_2, task_1, task_2):
             # print('subset :', tasks['input_' + task_2]['subset'])
             for i in tasks['input_' + task_2]['subset']:
                 tasks['input_' + i]['isCritical'] = False
-        finally:
+        except:
             pass
 
     if task_1 in branches:
@@ -170,7 +170,7 @@ def critical_path(str_gates, input_1, input_2, task_1, task_2):
             # print('subset :', tasks['input_' + task_2]['subset'])
             for i in tasks['input_' + task_1]['subset']:
                 tasks['input_' + i]['isCritical'] = False
-        finally:
+        except:
             pass
 
     branches.append(task_1)
@@ -178,12 +178,12 @@ def critical_path(str_gates, input_1, input_2, task_1, task_2):
 
     if str_gates == 'NAND':
         if input_1 == 1 and input_2 == 1:
-            tasks['input_' + task_1]['isCritical'] = True
-            tasks['input_' + task_2]['isCritical'] = True
+            tasks['input_'+task_1]['isCritical'] = True
+            tasks['input_'+task_2]['isCritical'] = True
         if input_1 == 1 and input_2 == 0:
-            tasks['input_' + task_2]['isCritical'] = True
+            tasks['input_'+task_2]['isCritical'] = True
         if input_1 == 0 and input_2 == 1:
-            tasks['input_' + task_1]['isCritical'] = True
+            tasks['input_'+task_1]['isCritical'] = True
 
     if str_gates == 'AND':
         pass
@@ -236,4 +236,7 @@ for task in tasks:
         print(f"stuck at {NOT(tasks[task]['value'])} in {tasks[task]['name']}")
 
 for out in output:
-    print(f"stuck at {NOT(output[out]['value'])} in {output[out]['name']}")
+    print(f"stuck at {0} in {output[out]['name']}")
+
+# print(f"stuck at {NOT(tasks['n22']['value'])} in {tasks['n22']['name']}")
+# print(f"stuck at {NOT(tasks['n23']['value'])} in {tasks['n23']['name']}")
